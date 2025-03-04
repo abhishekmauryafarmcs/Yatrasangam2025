@@ -234,9 +234,9 @@
     <!-- Floating Quick Help Button -->
     <div class="fixed bottom-8 right-8 z-50">
       <!-- Steps Dialog -->
-      <div v-if="showStepsDialog" class="absolute bottom-24 right-0 w-96 bg-white rounded-lg shadow-xl p-6 mb-4 sm:w-96 w-screen max-w-[calc(100vw-2rem)] mx-2 sm:mx-0 sm:right-0">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-indigo-600">Plan Your Cultural Journey</h3>
+      <div v-if="showStepsDialog" class="absolute bottom-24 right-0 w-96 bg-white rounded-lg shadow-xl p-4 mb-4 sm:w-96 w-screen max-w-[calc(100vw-2rem)] mx-2 sm:mx-0 sm:right-0">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-lg font-bold text-indigo-600">Plan Your Journey</h3>
           <button @click="showStepsDialog = false" class="text-gray-500 hover:text-gray-700">
             <span class="sr-only">Close</span>
             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -244,67 +244,44 @@
             </svg>
           </button>
         </div>
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">1</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Sign Up or Login</h4>
-              <p class="mt-1 text-sm text-gray-500">Create your Yatrasangam account to access personalized recommendations.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Sign up to access personalized recommendations</p>
             </div>
           </div>
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">2</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Choose Your Destination</h4>
-              <p class="mt-1 text-sm text-gray-500">Select from our curated list of cultural destinations across India.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Choose from our curated destinations</p>
             </div>
           </div>
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">3</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Select Your Interests</h4>
-              <p class="mt-1 text-sm text-gray-500">Pick from cultural experiences like food, art, festivals, and historical sites.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Select your cultural interests and preferences</p>
             </div>
           </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span class="text-indigo-600 font-semibold">4</span>
-            </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Customize Your Journey</h4>
-              <p class="mt-1 text-sm text-gray-500">Set your travel dates, preferences, and special requirements.</p>
-            </div>
-          </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span class="text-indigo-600 font-semibold">5</span>
-            </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Connect with Local Guides</h4>
-              <p class="mt-1 text-sm text-gray-500">Optional: Enhance your experience with our verified local cultural guides.</p>
-            </div>
-          </div>
-          <div class="mt-6">
-            <button 
-              @click="startPlanning" 
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200"
-            >
-              Start Planning Now
-            </button>
-          </div>
+          <button 
+            @click="startPlanning" 
+            class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 mt-3"
+          >
+            Start Planning
+          </button>
         </div>
       </div>
 
       <!-- Guide Finding Dialog -->
-      <div v-if="showGuideDialog" class="absolute bottom-24 right-0 w-96 bg-white rounded-lg shadow-xl p-6 mb-4 sm:w-96 w-screen max-w-[calc(100vw-2rem)] mx-2 sm:mx-0 sm:right-0">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-indigo-600">Find Your Perfect Local Guide</h3>
+      <div v-if="showGuideDialog" class="absolute bottom-24 right-0 w-96 bg-white rounded-lg shadow-xl p-4 mb-4 sm:w-96 w-screen max-w-[calc(100vw-2rem)] mx-2 sm:mx-0 sm:right-0">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-lg font-bold text-indigo-600">Find Local Guide</h3>
           <button @click="showGuideDialog = false" class="text-gray-500 hover:text-gray-700">
             <span class="sr-only">Close</span>
             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -312,67 +289,44 @@
             </svg>
           </button>
         </div>
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">1</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Choose Your Destination</h4>
-              <p class="mt-1 text-sm text-gray-500">Select the city or region where you need a local cultural guide.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Select your destination city or region</p>
             </div>
           </div>
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">2</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Specify Your Interests</h4>
-              <p class="mt-1 text-sm text-gray-500">Filter guides by expertise in art, history, cuisine, spirituality, or local traditions.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Choose expertise (art, history, cuisine)</p>
             </div>
           </div>
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">3</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Language Preferences</h4>
-              <p class="mt-1 text-sm text-gray-500">Find guides who speak your preferred languages for better communication.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Connect with verified local guides</p>
             </div>
           </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span class="text-indigo-600 font-semibold">4</span>
-            </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Browse & Connect</h4>
-              <p class="mt-1 text-sm text-gray-500">View detailed profiles, ratings, and reviews of verified local guides.</p>
-            </div>
-          </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span class="text-indigo-600 font-semibold">5</span>
-            </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Book & Customize</h4>
-              <p class="mt-1 text-sm text-gray-500">Schedule your guided experience and discuss your specific interests and requirements.</p>
-            </div>
-          </div>
-          <div class="mt-6">
-            <button 
-              @click="startFindingGuide" 
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200"
-            >
-              Find Your Guide
-            </button>
-          </div>
+          <button 
+            @click="startFindingGuide" 
+            class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 mt-3"
+          >
+            Find Guide
+          </button>
         </div>
       </div>
 
       <!-- Cultural Tips Dialog -->
-      <div v-if="showCulturalTipsDialog" class="absolute bottom-24 right-0 w-96 bg-white rounded-lg shadow-xl p-6 mb-4 max-h-[calc(100vh-200px)] overflow-y-auto sm:w-96 w-screen max-w-[calc(100vw-2rem)] mx-2 sm:mx-0 sm:right-0">
-        <div class="flex justify-between items-center mb-4 sticky top-0 bg-white pb-4 border-b">
-          <h3 class="text-xl font-bold text-indigo-600">AI-Powered Cultural Journey Planning</h3>
+      <div v-if="showCulturalTipsDialog" class="absolute bottom-24 right-0 w-96 bg-white rounded-lg shadow-xl p-4 mb-4 sm:w-96 w-screen max-w-[calc(100vw-2rem)] mx-2 sm:mx-0 sm:right-0">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-lg font-bold text-indigo-600">AI Travel Planning</h3>
           <button @click="showCulturalTipsDialog = false" class="text-gray-500 hover:text-gray-700">
             <span class="sr-only">Close</span>
             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -380,60 +334,37 @@
             </svg>
           </button>
         </div>
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">1</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Smart Destination Analysis</h4>
-              <p class="mt-1 text-sm text-gray-500">Our AI analyzes cultural hotspots, local festivals, and seasonal events to suggest the perfect destinations for your interests.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Get AI-powered destination suggestions</p>
             </div>
           </div>
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">2</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Personalized Experience Matching</h4>
-              <p class="mt-1 text-sm text-gray-500">Based on your interests in art, cuisine, spirituality, or history, our AI curates experiences that match your cultural preferences.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Receive personalized cultural experiences</p>
             </div>
           </div>
           <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center">
               <span class="text-indigo-600 font-semibold">3</span>
             </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Dynamic Scheduling</h4>
-              <p class="mt-1 text-sm text-gray-500">The AI optimizes your daily schedule considering factors like travel time, cultural event timings, and your preferred pace.</p>
+            <div class="ml-3">
+              <p class="text-sm text-gray-700">Get optimized schedules and local insights</p>
             </div>
           </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span class="text-indigo-600 font-semibold">4</span>
-            </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Cultural Context Integration</h4>
-              <p class="mt-1 text-sm text-gray-500">Each activity comes with AI-generated cultural insights, local customs, and historical significance to enrich your experience.</p>
-            </div>
-          </div>
-          <div class="flex items-start">
-            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span class="text-indigo-600 font-semibold">5</span>
-            </div>
-            <div class="ml-4">
-              <h4 class="text-sm font-medium text-gray-900">Real-time Adaptability</h4>
-              <p class="mt-1 text-sm text-gray-500">Our AI continuously learns from traveler feedback to improve recommendations and adapt to changing cultural landscapes.</p>
-            </div>
-          </div>
-          <div class="mt-6">
-            <button 
-              @click="startCulturalPlanning" 
-              class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200"
-            >
-              Start Planning
-            </button>
-          </div>
+          <button 
+            @click="startCulturalPlanning" 
+            class="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 mt-3"
+          >
+            Start Planning
+          </button>
         </div>
       </div>
 
@@ -681,8 +612,8 @@ const generateAIResponse = async (message) => {
     const model = import.meta.env.VITE_OPENROUTER_MODEL || 'deepseek/deepseek-r1-distill-llama-70b:free'
     
     if (!apiKey) {
-      console.error('OpenRouter API key is missing')
-      return findMatchingAnswer(message) // Fallback to predefined answers
+      console.error('OpenRouter API key is missing. Please check your .env configuration.')
+      return 'I apologize, but I am currently unable to process your request due to a configuration issue. Please contact support for assistance.'
     }
     
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -731,6 +662,9 @@ const generateAIResponse = async (message) => {
     if (!response.ok) {
       const errorData = await response.json()
       console.error('OpenRouter API error:', errorData)
+      if (response.status === 401) {
+        return 'I apologize, but there seems to be an authentication issue. Please ensure the OpenRouter API key is valid and properly configured.'
+      }
       return findMatchingAnswer(message) // Fallback to predefined answers
     }
     
