@@ -282,44 +282,100 @@
           <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="selectedItinerary = null"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full max-w-full sm:max-w-4xl">
               <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="sm:flex sm:items-start">
-                  <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                      {{ selectedItinerary.name }}
-                    </h3>
-                    <div class="mt-2">
-                      <p class="text-sm text-gray-500">{{ selectedItinerary.destination }} • {{ selectedItinerary.duration }} days</p>
-                      <div class="mt-4">
-                        <h4 class="text-sm font-medium text-gray-900">Itinerary Details</h4>
-                        <div class="mt-2 space-y-4">
-                          <div v-for="(day, index) in selectedItinerary.days" :key="index" class="border-l-2 border-indigo-200 pl-4 py-2">
-                            <div class="text-sm font-medium text-gray-900">Day {{ index + 1 }}</div>
-                            <div class="mt-1 text-sm text-gray-500">{{ day.description }}</div>
-                            <ul class="mt-2 space-y-2">
-                              <li v-for="(activity, actIndex) in day.activities" :key="actIndex" class="text-sm text-gray-600 flex items-start">
-                                <span class="h-5 w-5 text-indigo-500 mr-2">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                  </svg>
-                                </span>
-                                {{ activity }}
-                              </li>
-                            </ul>
-                          </div>
+                <div class="flex flex-col sm:items-start">
+                  <div class="w-full">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                      <h3 class="text-xl leading-6 font-bold text-gray-900 mb-2 sm:mb-0" id="modal-title">
+                        {{ selectedItinerary.name }}
+                      </h3>
+                      <div class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          {{ selectedItinerary.duration }} days
+                        </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {{ selectedItinerary.destination }}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span v-for="interest in selectedItinerary.interests" :key="interest" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {{ interest }}
+                      </span>
+                    </div>
+                    
+                    <div class="mt-4 border-t border-gray-200 pt-4">
+                      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
+                        <h4 class="text-lg font-medium text-gray-900">Itinerary Details</h4>
+                        <span class="text-sm text-gray-500 mt-1 sm:mt-0">Created: {{ new Date(selectedItinerary.createdAt).toLocaleDateString() }}</span>
+                      </div>
+                      
+                      <!-- Day Tabs -->
+                      <div class="border-b border-gray-200 mb-4">
+                        <div class="flex overflow-x-auto pb-2 scrollbar-hide">
+                          <button 
+                            v-for="(day, index) in selectedItinerary.days" 
+                            :key="index"
+                            @click="activeItineraryDay = index"
+                            class="px-4 py-2 text-sm font-medium mr-2 rounded-t-lg transition-colors whitespace-nowrap"
+                            :class="activeItineraryDay === index 
+                              ? 'bg-indigo-50 text-indigo-700 border-t-2 border-l border-r border-indigo-500' 
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
+                          >
+                            Day {{ index + 1 }}
+                          </button>
                         </div>
                       </div>
-                      <div class="mt-4">
-                        <h4 class="text-sm font-medium text-gray-900">Notes</h4>
-                        <p class="mt-1 text-sm text-gray-500">{{ selectedItinerary.notes || 'No notes added.' }}</p>
+                      
+                      <!-- Day Content -->
+                      <div v-if="selectedItinerary.days[activeItineraryDay]" class="space-y-4">
+                        <div class="bg-indigo-50 p-3 rounded-md">
+                          <h5 class="font-medium text-indigo-800">{{ selectedItinerary.days[activeItineraryDay].description }}</h5>
+                        </div>
+                        
+                        <!-- Simplified Day Schedule -->
+                        <div class="overflow-hidden bg-white shadow sm:rounded-md">
+                          <ul role="list" class="divide-y divide-gray-200">
+                            <li v-for="(activity, actIndex) in selectedItinerary.days[activeItineraryDay].activities" :key="actIndex">
+                              <div class="px-4 py-4 sm:px-6">
+                                <div class="flex items-center justify-between">
+                                  <div class="flex flex-col sm:flex-row sm:items-center">
+                                    <!-- Time (if available) -->
+                                    <p v-if="activity.time" class="text-sm font-medium text-indigo-600 mr-3 whitespace-nowrap">
+                                      {{ activity.time }}
+                                    </p>
+                                    <!-- Activity Name -->
+                                    <p class="text-sm font-medium text-gray-900">
+                                      {{ typeof activity === 'string' ? activity : activity.name || activity.title || 'Activity' }}
+                                    </p>
+                                  </div>
+                                  <!-- Location (if available) -->
+                                  <div v-if="activity.location" class="flex items-center text-sm text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="truncate">{{ activity.location }}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </li>
+                          </ul>
+                        </div>
                       </div>
+                    </div>
+                    
+                    <div class="mt-4 border-t border-gray-200 pt-4">
+                      <h4 class="text-sm font-medium text-gray-900">Notes</h4>
+                      <p class="mt-1 text-sm text-gray-500">{{ selectedItinerary.notes || 'No notes added.' }}</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" @click="selectedItinerary = null" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+              <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end">
+                <button type="button" @click="selectedItinerary = null" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
                   Close
                 </button>
               </div>
@@ -506,9 +562,17 @@ onMounted(() => {
 })
 
 const selectedItinerary = ref(null)
+const activeItineraryDay = ref(0)
+const expandedActivities = ref({})
 
 function viewItinerary(itinerary) {
   selectedItinerary.value = itinerary
+  activeItineraryDay.value = 0
+  expandedActivities.value = {}
+}
+
+function toggleActivityDetails(index) {
+  expandedActivities.value[index] = !expandedActivities.value[index]
 }
 
 // Function to delete itinerary
@@ -537,6 +601,14 @@ async function deleteItinerary(id) {
 </script>
 
 <style scoped>
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 .form-label {
   @apply block text-sm font-medium text-gray-700;
 }

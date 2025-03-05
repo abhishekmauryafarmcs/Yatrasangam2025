@@ -2,34 +2,33 @@ import axios from 'axios';
 
 class ItineraryService {
   constructor() {
-    this.openRouterApiKey = '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';
+    this.openRouterApiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     this.apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
   }
 
   async generateItinerary(preferences) {
     try {
-      const { destination, selectedInterests, duration, language, travelStyle } = preferences;
+      const { state, destination, selectedInterests, duration, language, travelStyle } = preferences;
       
       // Format interests for the prompt
       const interests = this.formatInterests(selectedInterests);
       
       // Build the prompt for the AI
-      const prompt = this.buildItineraryPrompt(destination, interests, duration, language, travelStyle);
+      const prompt = this.buildItineraryPrompt(state, destination, interests, duration, language, travelStyle);
       
       // Call the OpenRouter API
-      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
       const model = import.meta.env.VITE_OPENROUTER_MODEL || 'deepseek/deepseek-r1-distill-llama-70b:free';
       
-      if (!apiKey) {
+      if (!this.openRouterApiKey) {
         console.error('OpenRouter API key is missing');
         return this.createFallbackItinerary(duration, destination);
       }
       
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${this.openRouterApiKey}`,
           'HTTP-Referer': window.location.href,
           'X-Title': 'Cultural Planner'
         },
@@ -38,7 +37,28 @@ class ItineraryService {
           messages: [
             { 
               role: 'system', 
-              content: 'You are a cultural travel expert specializing in India. Create detailed, authentic, and culturally immersive travel itineraries with local experiences, cultural context, and practical information. Format each day with specific times, activities, and locations.'
+              content: `You are a cultural travel expert specializing in Indian tourism and cultural experiences. 
+              Create detailed, authentic, and culturally immersive travel itineraries with:
+              1. Specific timings and durations for each activity
+              2. Exact locations with addresses
+              3. Cultural and historical context
+              4. Practical information (costs, bookings, dress code)
+              5. Local insights and tips
+              6. Weather alternatives
+              
+              Format each activity exactly as:
+              [Time] Activity Name | Location
+              Description: (activity details)
+              Cultural Context: (historical/cultural significance)
+              Practical Info:
+              - Duration: X hours
+              - Cost: ₹XXX
+              - Booking: (requirements)
+              - Dress Code: (requirements)
+              - Photography: (rules)
+              - Transport: (how to reach)
+              Tips: (special advice)
+              Weather Alternative: (backup plan)`
             },
             { role: 'user', content: prompt }
           ],
@@ -54,41 +74,406 @@ class ItineraryService {
       }
       
       const data = await response.json();
-      const aiResponse = data.choices[0].message.content;
       
-      // Parse the response into an itinerary structure
-      const itinerary = this.parseItineraryResponse(aiResponse, duration, destination);
+      // Check if the response has the expected structure
+      if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0 || !data.choices[0].message?.content) {
+        console.error('Invalid API response structure:', data);
+        return this.createFallbackItinerary(duration, destination);
+      }
       
-      // Ensure all practical information fields are properly set
-      itinerary.forEach(day => {
-        day.timeSlots.forEach(slot => {
-          // Make sure practicalInfo exists and has all required fields
-          if (!slot.practicalInfo) {
-            slot.practicalInfo = {};
+      const itineraryText = data.choices[0].message.content;
+      
+      // Parse and format the response
+      return this.parseItineraryResponse(itineraryText, duration, destination);
+      
+    } catch (error) {
+      console.error('Error generating itinerary:', error);
+      return this.createFallbackItinerary(duration, destination);
+    }
+  }
+
+  buildItineraryPrompt(state, destination, interests, duration, language, travelStyle) {
+    const travelStyleGuide = {
+      'relaxed': 'Focus on leisurely paced activities, ample rest time, and easily accessible locations. Include longer breaks between activities.',
+      'balanced': 'Mix of active and relaxed experiences, moderate walking distances, and well-timed breaks.',
+      'intensive': 'Pack more activities per day, include early morning starts, and cover more ground. Minimize downtime.'
+    };
+
+    const styleGuidance = travelStyleGuide[travelStyle] || travelStyleGuide['balanced'];
+
+    return `Create a detailed ${duration}-day cultural journey in ${destination}, ${state}, India, focusing on authentic experiences and specific locations. The itinerary should be in ${language} and follow a ${travelStyle} pace (${styleGuidance}).
+
+Key Requirements:
+1. Focus specifically on these cultural interests: ${interests}
+2. Ensure activities match the ${travelStyle} travel style
+3. Include both iconic sites and hidden local experiences
+4. Consider local festivals and events during the visit
+5. Provide language support in ${language}
+
+Structure each day following this exact format:
+
+Early Morning (6:00 AM - 8:00 AM):
+- Spiritual or cultural morning activities
+- Specific temple names or locations
+- Photography opportunities
+
+Morning (9:00 AM - 12:00 PM):
+- Main cultural activities and sightseeing
+- Workshop or interactive experiences
+- Local guide recommendations
+
+Afternoon (2:00 PM - 5:00 PM):
+- Cultural demonstrations or hands-on activities
+- Art/craft workshops or cultural sites
+- Indoor alternatives for weather issues
+
+Evening (5:00 PM - 8:00 PM):
+- Cultural performances or ceremonies
+- Sunset viewing points
+- Local community interactions
+
+For EACH activity, provide:
+1. Exact timing and duration
+2. Specific venue name and address
+3. Cultural significance and history
+4. Cost estimates in Indian Rupees
+5. Booking requirements if any
+6. Dress code and cultural etiquette
+7. Photography guidelines
+8. Transportation options
+9. Weather alternatives
+10. Local tips and insights
+
+Important Considerations:
+1. Account for travel time between locations
+2. Include meal times at authentic local venues
+3. Add rest breaks appropriate for ${travelStyle} style
+4. Note prayer times and religious customs
+5. Suggest photo opportunities
+6. Include backup plans for weather
+7. Add shopping recommendations for local crafts
+8. Consider accessibility needs
+9. Include local emergency contacts
+10. Suggest cultural do's and don'ts
+
+Please maintain consistent formatting throughout the itinerary, using the exact structure provided in the system message.`;
+  }
+
+  parseItineraryResponse(responseText, duration, destination) {
+    try {
+      const itinerary = [];
+      
+      if (!responseText || typeof responseText !== 'string') {
+        console.error('Invalid response text:', responseText);
+        return this.createFallbackItinerary(duration, destination);
+      }
+
+      // Split by day markers
+      let days = [];
+      // First try to split by "Day X:" pattern
+      const dayPattern = /Day\s+(\d+):/gi;
+      const dayMatches = [...responseText.matchAll(dayPattern)];
+      
+      if (dayMatches.length > 0) {
+        for (let i = 0; i < dayMatches.length; i++) {
+          const currentMatch = dayMatches[i];
+          const nextMatch = dayMatches[i + 1];
+          const dayNumber = parseInt(currentMatch[1]);
+          
+          if (dayNumber > 0 && dayNumber <= duration) {
+            const startIndex = currentMatch.index + currentMatch[0].length;
+            const endIndex = nextMatch ? nextMatch.index : responseText.length;
+            const dayContent = responseText.substring(startIndex, endIndex).trim();
+            
+            if (dayContent) {
+              days.push({
+                dayNumber: dayNumber,
+                content: dayContent
+              });
+            }
           }
+        }
+      }
+      
+      // If no days found with the pattern, try to split evenly
+      if (days.length === 0) {
+        console.warn('No day markers found, attempting to split content evenly');
+        const splitContent = responseText.split(/\n\s*\n+/g)
+          .filter(section => section.trim().length > 0);
+        
+        // Try to distribute content evenly among the expected number of days
+        const sectionsPerDay = Math.max(1, Math.ceil(splitContent.length / duration));
+        for (let i = 0; i < duration; i++) {
+          const startIdx = i * sectionsPerDay;
+          const endIdx = Math.min(startIdx + sectionsPerDay, splitContent.length);
+          if (startIdx < splitContent.length) {
+            const dayContent = splitContent.slice(startIdx, endIdx).join('\n\n');
+            days.push({
+              dayNumber: i + 1,
+              content: dayContent
+            });
+          }
+        }
+      }
+      
+      // Ensure we have the correct number of days
+      if (days.length < duration) {
+        console.warn(`Only found ${days.length} days, but ${duration} were requested. Adding empty days.`);
+        for (let i = days.length + 1; i <= duration; i++) {
+          days.push({
+            dayNumber: i,
+            content: `Explore ${destination} at your own pace.`
+          });
+        }
+      } else if (days.length > duration) {
+        console.warn(`Found ${days.length} days, but only ${duration} were requested. Truncating.`);
+        days = days.slice(0, duration);
+      }
+      
+      // Sort days by dayNumber to ensure correct order
+      days.sort((a, b) => a.dayNumber - b.dayNumber);
+      
+      // Process each day's content
+      days.forEach(day => {
+        const timeSlots = [];
+        
+        // Extract time slots using regex - fixed pattern with improved time capture
+        const timeSlotPattern = /\[([\d:]+(?:\s*(?:AM|PM))?)\]\s*([^|]+)\|\s*([^\n]+)(?:\n([\s\S]*?)(?=\[[\d:]+(?:\s*(?:AM|PM))?\]|$))?/gm;
+        const matches = [...day.content.matchAll(timeSlotPattern)];
+        
+        if (matches.length === 0) {
+          // No time slots found, create default activities
+          console.warn(`No valid time slots found for day ${day.dayNumber}, creating default activities`);
+          timeSlots.push(this.createDefaultActivity(day.dayNumber, '09:00 AM', destination));
+          timeSlots.push(this.createDefaultActivity(day.dayNumber, '12:00 PM', destination));
+          timeSlots.push(this.createDefaultActivity(day.dayNumber, '03:00 PM', destination));
+          timeSlots.push(this.createDefaultActivity(day.dayNumber, '07:00 PM', destination));
+        } else {
+          for (const match of matches) {
+            const [_, time, title, location, details] = match;
+            
+            // Parse activity details with improved extraction
+            let description = '';
+            let culturalContext = '';
+            let practicalInfo = {
+              duration: '',
+              cost: '',
+              booking: '',
+              dressCode: '',
+              photography: '',
+              transport: ''
+            };
+            let tips = '';
+            let weatherAlternative = '';
+            
+            if (details) {
+              // Clean up details by removing excessive whitespace
+              const cleanDetails = details.replace(/\n+/g, '\n').trim();
+              
+              // Extract sections using improved patterns
+              description = this.extractSection(cleanDetails, 'Description:', 'Cultural Context:') ||
+                           this.extractSection(cleanDetails, 'Description:', 'Practical Info:') || '';
+              
+              culturalContext = this.extractSection(cleanDetails, 'Cultural Context:', 'Practical Info:') || 
+                               this.extractSection(cleanDetails, 'Cultural Context:', 'Tips:') || '';
+              
+              // Extract practical info
+              const practicalInfoSection = this.extractSection(cleanDetails, 'Practical Info:', 'Tips:') || 
+                                          this.extractSection(cleanDetails, 'Practical Info:', 'Weather Alternative:') || '';
+              
+              if (practicalInfoSection) {
+                practicalInfo.duration = this.extractBulletPoint(practicalInfoSection, 'Duration:') || '';
+                practicalInfo.cost = this.extractBulletPoint(practicalInfoSection, 'Cost:') || '';
+                practicalInfo.booking = this.extractBulletPoint(practicalInfoSection, 'Booking:') || '';
+                practicalInfo.dressCode = this.extractBulletPoint(practicalInfoSection, 'Dress Code:') || '';
+                practicalInfo.photography = this.extractBulletPoint(practicalInfoSection, 'Photography:') || '';
+                practicalInfo.transport = this.extractBulletPoint(practicalInfoSection, 'Transport:') || '';
+              }
+              
+              tips = this.extractSection(cleanDetails, 'Tips:', 'Weather Alternative:') || 
+                    this.extractSection(cleanDetails, 'Tips:', null) || '';
+              
+              weatherAlternative = this.extractSection(cleanDetails, 'Weather Alternative:', null) || '';
+            }
+            
+            timeSlots.push({
+              time: this.formatTimeIndicator(time),
+              title: title.trim(),
+              location: location.trim(),
+              description: description.trim(),
+              culturalContext: culturalContext.trim(),
+              practicalInfo,
+              tips: tips.trim(),
+              weatherAlternative: weatherAlternative.trim()
+            });
+          }
+        }
+        
+        // Sort time slots by time
+        timeSlots.sort((a, b) => {
+          const timeA = this.parseTime(a.time);
+          const timeB = this.parseTime(b.time);
+          return timeA - timeB;
+        });
+        
+        // Ensure time slots don't overlap by adjusting display format
+        for (let i = 0; i < timeSlots.length; i++) {
+          // Ensure time is in consistent format with leading zeros
+          timeSlots[i].time = this.formatTimeWithLeadingZeros(timeSlots[i].time);
           
-          // Set default values for any missing fields
-          const activityType = slot.title.toLowerCase();
-          slot.practicalInfo.duration = slot.practicalInfo.duration || this.getDefaultDuration(activityType);
-          slot.practicalInfo.cost = slot.practicalInfo.cost || this.getDefaultCost(activityType);
-          slot.practicalInfo.bookingInfo = slot.practicalInfo.bookingInfo || this.getDefaultBooking(activityType);
-          slot.practicalInfo.dressCode = slot.practicalInfo.dressCode || this.getDefaultDressCode(activityType);
-          slot.practicalInfo.photography = slot.practicalInfo.photography || this.getDefaultPhotography(activityType);
-          slot.practicalInfo.transport = slot.practicalInfo.transport || this.getDefaultTransport(slot.location);
-          
-          // Ensure tips and weather alternatives are set
-          slot.tips = slot.tips || this.getDefaultTips(activityType);
-          slot.weatherAlternatives = slot.weatherAlternatives || this.getDefaultWeatherAlternative(activityType);
+          // Add a displayTime property that includes the activity number
+          timeSlots[i].displayTime = `${timeSlots[i].time}`;
+        }
+        
+        itinerary.push({
+          day: day.dayNumber,
+          timeSlots
         });
       });
       
-      console.log('Final itinerary with practical info:', JSON.stringify(itinerary[0].timeSlots[0].practicalInfo, null, 2));
+      // Ensure days are in sequential order
+      itinerary.sort((a, b) => a.day - b.day);
       
       return itinerary;
+      
     } catch (error) {
-      console.error('Error generating itinerary:', error);
-      return this.createFallbackItinerary(preferences.duration, preferences.destination);
+      console.error('Error parsing itinerary response:', error);
+      return this.createFallbackItinerary(duration, destination);
     }
+  }
+  
+  // Helper methods for extracting sections
+  extractSection(text, startMarker, endMarker) {
+    if (!text || !startMarker) return '';
+    
+    const startIndex = text.indexOf(startMarker);
+    if (startIndex === -1) return '';
+    
+    const contentStart = startIndex + startMarker.length;
+    
+    let contentEnd;
+    if (endMarker) {
+      contentEnd = text.indexOf(endMarker, contentStart);
+      if (contentEnd === -1) contentEnd = text.length;
+    } else {
+      contentEnd = text.length;
+    }
+    
+    return text.substring(contentStart, contentEnd).trim();
+  }
+  
+  extractBulletPoint(text, marker) {
+    const pattern = new RegExp(`${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*([^\\n]+)`, 'i');
+    const match = text.match(pattern);
+    return match ? match[1].replace(/^[-•]\s*/, '').trim() : '';
+  }
+  
+  createDefaultActivity(dayNumber, time, destination) {
+    const activities = [
+      {
+        title: 'Cultural Heritage Walk',
+        description: `Explore the historical streets and landmarks of ${destination}`,
+        culturalContext: 'Learn about the local history and architectural influences',
+        tips: 'Wear comfortable walking shoes and carry water',
+        weatherAlternative: 'Visit the local history museum'
+      },
+      {
+        title: 'Local Cuisine Experience',
+        description: `Sample authentic ${destination} flavors at a traditional restaurant`,
+        culturalContext: 'Discover the culinary heritage and spice traditions',
+        tips: 'Ask locals for their favorite dishes and specialties',
+        weatherAlternative: 'Take a cooking class at an indoor venue'
+      },
+      {
+        title: 'Artisan Workshop Visit',
+        description: `Observe local craftspeople creating traditional ${destination} handicrafts`,
+        culturalContext: 'Understand the artistic techniques passed down through generations',
+        tips: 'Support local artisans by purchasing directly from them',
+        weatherAlternative: 'Visit an indoor craft exhibition or gallery'
+      },
+      {
+        title: 'Evening Cultural Performance',
+        description: 'Enjoy traditional music, dance, or theatrical performance',
+        culturalContext: 'Experience the performing arts traditions of the region',
+        tips: 'Arrive early for the best seating',
+        weatherAlternative: 'Indoor theater or cultural center performance'
+      }
+    ];
+    
+    const index = (parseInt(time) + dayNumber) % activities.length;
+    const activity = activities[index];
+    
+    return {
+      time,
+      displayTime: time,
+      title: activity.title,
+      location: `${destination} ${activity.title.includes('Walk') ? 'Old Town' : 'Cultural Center'}`,
+      description: activity.description,
+      culturalContext: activity.culturalContext,
+      practicalInfo: {
+        duration: '2-3 hours',
+        cost: '₹500-1000 per person',
+        booking: 'No reservation required',
+        dressCode: 'Casual, respectful attire',
+        photography: 'Permitted in most areas',
+        transport: 'Available by auto-rickshaw or taxi'
+      },
+      tips: activity.tips,
+      weatherAlternative: activity.weatherAlternative
+    };
+  }
+
+  parseTime(timeStr) {
+    const [time, period] = timeStr.split(/\s+/);
+    const [hours, minutes] = time.split(':').map(Number);
+    let totalMinutes = hours * 60 + minutes;
+    
+    if (period?.toUpperCase() === 'PM' && hours !== 12) {
+      totalMinutes += 12 * 60;
+    } else if (period?.toUpperCase() === 'AM' && hours === 12) {
+      totalMinutes -= 12 * 60;
+    }
+    
+    return totalMinutes;
+  }
+
+  formatTimeIndicator(time) {
+    // Ensure consistent time format (e.g., "09:00 AM")
+    const timeMatch = time.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM))?/i);
+    if (!timeMatch) return time;
+    
+    let [_, hours, minutes, period] = timeMatch;
+    hours = parseInt(hours);
+    
+    if (!period) {
+      period = hours >= 12 ? 'PM' : 'AM';
+      if (hours > 12) hours -= 12;
+    }
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.padStart(2, '0')} ${period.toUpperCase()}`;
+  }
+
+  formatTimeWithLeadingZeros(timeStr) {
+    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!timeMatch) return timeStr;
+    
+    const [_, hours, minutes, period] = timeMatch;
+    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')} ${period.toUpperCase()}`;
+  }
+
+  formatInterests(selectedInterestIds) {
+    const interestMap = {
+      'food': 'Culinary Arts and Local Cuisine',
+      'history': 'Historical Sites and Heritage',
+      'arts': 'Traditional Arts and Performances',
+      'festivals': 'Cultural Festivals and Ceremonies',
+      'crafts': 'Traditional Crafts and Artisans',
+      'spiritual': 'Spiritual and Religious Experiences'
+    };
+    
+    return selectedInterestIds
+      .map(id => interestMap[id] || id)
+      .join(', ');
   }
 
   createFallbackItinerary(duration, destination) {
@@ -296,507 +681,6 @@ class ItineraryService {
         tips: activity.tips || 'No specific tips available'
       }))
     }));
-  }
-
-  formatInterests(selectedInterestIds) {
-    const interestMap = {
-      'food': 'Culinary Arts and local cuisine',
-      'history': 'Historical Sites and monuments',
-      'arts': 'Traditional Arts, music and dance',
-      'festivals': 'Festivals and cultural ceremonies',
-      'crafts': 'Traditional Crafts and artisan workshops',
-      'spiritual': 'Spiritual Experiences like temples and meditation'
-    };
-
-    return selectedInterestIds.map(id => interestMap[id] || id).join(', ');
-  }
-
-  buildItineraryPrompt(destination, interests, duration, language, travelStyle) {
-    const travelStyleGuide = {
-      'luxury': 'Focus on premium experiences, 5-star accommodations, private tours, and exclusive cultural performances',
-      'budget': 'Include affordable yet authentic experiences, local transportation, and budget-friendly dining options',
-      'adventure': 'Incorporate active experiences, off-the-beaten-path locations, and unique cultural encounters',
-      'relaxed': 'Plan a balanced itinerary with leisure time, comfortable pacing, and easy-to-access locations'
-    };
-
-    const styleGuidance = travelStyleGuide[travelStyle.toLowerCase()] || 'Balance different types of experiences';
-
-    return `Create a highly detailed ${duration}-day cultural journey in ${destination}, India, focusing on authentic experiences and specific locations. The itinerary should be in ${language} and follow a ${travelStyle} style (${styleGuidance}).
-
-For each day, provide a comprehensive schedule with exact locations and timings:
-
-Early Morning (6:00 AM - 8:00 AM):
-- Consider sunrise activities, spiritual practices, or photography opportunities
-- Include specific temple names, viewing points, or meditation centers
-
-Morning (9:00 AM - 12:00 PM):
-- Main cultural activities and sightseeing
-- Exact monument names, historical sites, or workshop locations
-
-Lunch (12:30 PM - 2:00 PM):
-- Specific restaurant names and locations
-- Local specialties to try
-- Cultural significance of the cuisine
-
-Afternoon (2:30 PM - 5:00 PM):
-- Cultural activities, workshops, or interactive experiences
-- Exact venues and local artisan details
-
-Evening (5:30 PM - 7:30 PM):
-- Cultural performances, ceremonies, or sunset activities
-- Specific venue names and timing considerations
-
-Dinner (8:00 PM - 9:30 PM):
-- Restaurant recommendations with exact locations
-- Special dining experiences or cultural shows
-
-For each activity, provide:
-1. Exact name and address of the location
-2. GPS coordinates when available
-3. Detailed cultural and historical background
-4. Local customs and etiquette guidelines
-5. Photography guidelines and best spots
-6. Recommended duration
-7. Contact information for venues/guides
-8. Alternative options for different weather conditions
-9. Accessibility information
-10. Booking requirements and typical costs
-
-Additional requirements:
-1. Focus on these specific interests: ${interests}
-2. Include both famous landmarks and hidden local gems
-3. Incorporate authentic interactions with local communities
-4. Consider seasonal festivals and events
-5. Provide transportation details between locations
-6. Include rest breaks and flexible time slots
-7. Note prayer times and religious considerations
-8. Suggest photo opportunities and best timing
-9. Include backup plans for weather issues
-10. Add local shopping recommendations
-
-Cultural context for each activity should include:
-- Historical significance
-- Religious or spiritual importance
-- Local traditions and customs
-- Cultural dos and don'ts
-- Language tips and common phrases
-- Traditional arts and crafts involved
-- Local legends and stories
-- Seasonal considerations
-- Community involvement
-- Modern cultural significance
-
-Please structure each activity in this format:
-
-[Time] - [Activity Name] | [Exact Location with Address]
-Description: Detailed explanation of the experience
-Cultural Significance: Historical and cultural background
-Practical Information:
-- Duration: [Expected time needed]
-- Cost: [Price range and what's included]
-- Booking: [How to book/contact]
-- Dress Code: [Specific requirements]
-- Photography: [Rules and best spots]
-- Transport: [How to reach]
-Tips: [Special advice for the best experience]
-Alternative Options: [Backup plans for weather/availability]
-
-Maintain this detailed format for all ${duration} days, ensuring each activity authentically represents ${destination}'s cultural heritage while matching the traveler's interests and ${travelStyle} style preferences.`;
-  }
-
-  parseItineraryResponse(responseText, duration, destination) {
-    try {
-      const itinerary = [];
-      
-      // Ensure responseText is a string and not empty
-      if (!responseText || typeof responseText !== 'string') {
-        console.error('Invalid response text:', responseText);
-        return this.createFallbackItinerary(duration, destination);
-      }
-
-      // Split by day markers and remove empty entries
-      const days = responseText.split(/Day \d+:/g)
-        .map(day => day?.trim())
-        .filter(Boolean);
-      
-      // If no valid days found, return fallback
-      if (days.length === 0) {
-        console.warn('No valid days found in response');
-        return this.createFallbackItinerary(duration, destination);
-      }
-
-      days.forEach((dayContent, dayIndex) => {
-        const timeSlots = [];
-        
-        try {
-          // Split by time markers, looking for both standard times and time ranges
-          const timePattern = /(?:\d{1,2}:\d{2}\s*(?:AM|PM)|(?:Early Morning|Morning|Lunch|Afternoon|Evening|Dinner)\s*\(\d{1,2}:\d{2}\s*(?:AM|PM)\s*-\s*\d{1,2}:\d{2}\s*(?:AM|PM)\))/i;
-          
-          // First, find all time markers
-          const timeMatches = dayContent.match(new RegExp(timePattern, 'g')) || [];
-          
-          // Then split content by these markers
-          let activities = [];
-          let lastIndex = 0;
-          
-          timeMatches.forEach(match => {
-            const index = dayContent.indexOf(match, lastIndex);
-            if (index > lastIndex) {
-              activities.push(dayContent.slice(lastIndex, index));
-            }
-            lastIndex = index + match.length;
-          });
-          
-          // Add the remaining content after the last time marker
-          if (lastIndex < dayContent.length) {
-            activities.push(dayContent.slice(lastIndex));
-          }
-          
-          // Filter and process activities
-          activities = activities
-            .map(activity => activity?.trim())
-            .filter(Boolean);
-
-          activities.forEach((activity, index) => {
-            try {
-              // Initialize activity data structure with defaults
-              let activityData = {
-                time: '',
-                title: 'Cultural Experience',
-                description: `Explore ${destination}`,
-                location: destination,
-                culturalContext: 'Experience local traditions and customs',
-                practicalInfo: {},
-                tips: '',
-                weatherAlternatives: ''
-              };
-
-              // Clean up any markdown-style formatting that might be causing display issues
-              activity = activity
-                .replace(/\*\*/g, '') // Remove markdown bold
-                .replace(/\n+/g, '\n') // Normalize newlines
-                .trim();
-
-              // Extract activity title and location more precisely
-              const titleMatch = activity.match(/Activity:?\s*(.*?)(?=\s*-\s*Location|\s*-\s*\*\*Location|\n|$)/i);
-              if (titleMatch && titleMatch[1]) {
-                activityData.title = titleMatch[1].replace(/^\*+|\*+$|`/g, '').trim();
-              }
-
-              const locationMatch = activity.match(/Location:?\s*(.*?)(?=\s*-\s*Description|\s*-\s*\*\*Description|\n|$)/i);
-              if (locationMatch && locationMatch[1]) {
-                activityData.location = locationMatch[1].replace(/^\*+|\*+$|`/g, '').trim();
-              }
-
-              // Better extraction for description that handles various formats
-              const descMatch = activity.match(/Description:?\s*(.*?)(?=\s*-\s*Cultural|Cultural Significance:|\s*-\s*\*\*Cultural|\n\s*Cultural|\n\s*Practical|\n\s*Tips:)/is);
-              if (descMatch && descMatch[1]) {
-                activityData.description = descMatch[1].replace(/^\*+|\*+$|`/g, '').trim();
-              }
-
-              // Enhanced cultural context extraction
-              const culturalMatch = activity.match(/Cultural Significance:?\s*(.*?)(?=\s*-\s*Practical|\s*-\s*\*\*Practical|\n\s*Practical|\n\s*Tips:)/is);
-              if (culturalMatch && culturalMatch[1]) {
-                activityData.culturalContext = culturalMatch[1].replace(/^\*+|\*+$|`/g, '').trim();
-              }
-
-              // Extract all practical information more robustly
-              const practicalInfo = {};
-              
-              // Check for both "Practical Info" and "Practical Information" variations
-              const practicalPattern = /Practical Info(?:rmation)?:([^]*?)(?=\n\s*(?:Tips:|Alternative|$))/is;
-              const practicalSection = activity.match(practicalPattern);
-              
-              if (practicalSection && practicalSection[1]) {
-                const infoText = practicalSection[1].trim();
-                
-                // Duration
-                const durationMatch = infoText.match(/Duration:?\s*(.*?)(?=\n|Cost:|$)/is);
-                if (durationMatch && durationMatch[1]) {
-                  practicalInfo.duration = durationMatch[1].replace(/^\*+|\*+$|-/g, '').trim();
-                }
-                
-                // Cost
-                const costMatch = infoText.match(/Cost:?\s*(.*?)(?=\n|Booking:|Dress Code:|$)/is);
-                if (costMatch && costMatch[1]) {
-                  practicalInfo.cost = costMatch[1].replace(/^\*+|\*+$|-/g, '').trim();
-                }
-                
-                // Booking Info
-                const bookingMatch = infoText.match(/Booking:?\s*(.*?)(?=\n|Dress Code:|Photography:|$)/is);
-                if (bookingMatch && bookingMatch[1]) {
-                  practicalInfo.bookingInfo = bookingMatch[1].replace(/^\*+|\*+$|-/g, '').trim();
-                }
-                
-                // Dress Code
-                const dressMatch = infoText.match(/Dress Code:?\s*(.*?)(?=\n|Photography:|Transport:|$)/is);
-                if (dressMatch && dressMatch[1]) {
-                  practicalInfo.dressCode = dressMatch[1].replace(/^\*+|\*+$|-/g, '').trim();
-                }
-                
-                // Photography
-                const photoMatch = infoText.match(/Photography:?\s*(.*?)(?=\n|Transport:|$)/is);
-                if (photoMatch && photoMatch[1]) {
-                  practicalInfo.photography = photoMatch[1].replace(/^\*+|\*+$|-/g, '').trim();
-                }
-                
-                // Transport
-                const transportMatch = infoText.match(/Transport(?:ation)?:?\s*(.*?)(?=\n|$)/is);
-                if (transportMatch && transportMatch[1]) {
-                  practicalInfo.transport = transportMatch[1].replace(/^\*+|\*+$|-/g, '').trim();
-                }
-              }
-
-              // Set default values for missing practical info
-              const activityType = activityData.title.toLowerCase();
-              activityData.practicalInfo = {
-                duration: practicalInfo.duration || this.getDefaultDuration(activityType),
-                cost: practicalInfo.cost || this.getDefaultCost(activityType),
-                bookingInfo: practicalInfo.bookingInfo || this.getDefaultBooking(activityType),
-                dressCode: practicalInfo.dressCode || this.getDefaultDressCode(activityType),
-                photography: practicalInfo.photography || this.getDefaultPhotography(activityType),
-                transport: practicalInfo.transport || this.getDefaultTransport(activityData.location)
-              };
-
-              // Extract tips
-              const tipsMatch = activity.match(/Tips:?\s*(.*?)(?=\n\s*Alternative|\n\s*Weather|$)/is);
-              if (tipsMatch && tipsMatch[1]) {
-                activityData.tips = tipsMatch[1].replace(/^\*+|\*+$|`/g, '').trim();
-              } else {
-                activityData.tips = this.getDefaultTips(activityType);
-              }
-
-              // Extract weather alternatives
-              const weatherMatch = activity.match(/(?:Alternative Options|Weather Alternatives|Backup Plans):?\s*(.*?)(?=\n\s*$|$)/is);
-              if (weatherMatch && weatherMatch[1]) {
-                activityData.weatherAlternatives = weatherMatch[1].replace(/^\*+|\*+$|`/g, '').trim();
-              } else {
-                activityData.weatherAlternatives = this.getDefaultWeatherAlternative(activityType);
-              }
-
-              // Determine time
-              if (timeMatches.length > index) {
-                const timeText = timeMatches[index];
-                if (timeText.match(/\d{1,2}:\d{2}\s*(?:AM|PM)/i)) {
-                  activityData.time = timeText.match(/\d{1,2}:\d{2}\s*(?:AM|PM)/i)[0];
-                } else {
-                  // Extract time from time ranges like "Morning (9:00 AM - 11:00 AM)"
-                  const rangeMatch = timeText.match(/\((\d{1,2}:\d{2}\s*(?:AM|PM))/i);
-                  if (rangeMatch) {
-                    activityData.time = rangeMatch[1];
-                  } else {
-                    // Default times based on part of day
-                    const defaultTimes = {
-                      'early morning': '6:00 AM',
-                      'morning': '9:00 AM',
-                      'lunch': '12:30 PM',
-                      'afternoon': '2:30 PM',
-                      'evening': '5:30 PM',
-                      'dinner': '8:00 PM'
-                    };
-                    
-                    const timeKey = Object.keys(defaultTimes).find(key => 
-                      timeText.toLowerCase().includes(key)
-                    );
-                    
-                    activityData.time = timeKey ? defaultTimes[timeKey] : this.getDefaultTimeForIndex(index);
-                  }
-                }
-              } else {
-                activityData.time = this.getDefaultTimeForIndex(index);
-              }
-
-              timeSlots.push(activityData);
-            } catch (activityError) {
-              console.error('Error processing activity:', activityError);
-              // Add a basic fallback activity
-              timeSlots.push({
-                time: this.getDefaultTimeForIndex(index),
-                title: `Cultural Experience in ${destination}`,
-                description: `Explore the cultural heritage of ${destination}`,
-                location: destination,
-                culturalContext: 'Experience local traditions and customs',
-                practicalInfo: {
-                  duration: '2 hours',
-                  cost: 'Varies',
-                  bookingInfo: 'Not required',
-                  dressCode: 'Casual, respectful attire',
-                  photography: 'Allowed in most areas',
-                  transport: 'Local transport available'
-                },
-                tips: 'Engage with locals for an authentic experience',
-                weatherAlternatives: 'Indoor cultural activities available'
-              });
-            }
-          });
-
-          // Sort time slots by time
-          timeSlots.sort((a, b) => {
-            const timeA = new Date(`2000/01/01 ${a.time}`);
-            const timeB = new Date(`2000/01/01 ${b.time}`);
-            return timeA - timeB;
-          });
-        } catch (dayError) {
-          console.error('Error processing day:', dayError);
-          // Use fallback activities for this day
-          const fallbackDay = this.createFallbackItinerary(1, destination)[0];
-          timeSlots.push(...fallbackDay.timeSlots);
-        }
-
-        // Ensure we have at least some activities for the day
-        if (timeSlots.length === 0) {
-          const fallbackDay = this.createFallbackItinerary(1, destination)[0];
-          timeSlots.push(...fallbackDay.timeSlots);
-        }
-
-        itinerary.push({
-          day: dayIndex + 1,
-          timeSlots
-        });
-      });
-
-      // If parsing failed or not enough days, fill with default structure
-      while (itinerary.length < duration) {
-        const defaultDay = this.createFallbackItinerary(1, destination)[0];
-        defaultDay.day = itinerary.length + 1;
-        itinerary.push(defaultDay);
-      }
-
-      return itinerary;
-    } catch (error) {
-      console.error('Error parsing itinerary:', error);
-      return this.createFallbackItinerary(duration, destination);
-    }
-  }
-  
-  formatTimeIndicator(timeIndicator) {
-    // Standardize common time formats
-    timeIndicator = timeIndicator.trim();
-    
-    const timeMap = {
-      'Morning': '9:00 AM',
-      'Afternoon': '3:00 PM',
-      'Evening': '7:00 PM',
-      'Lunch': '1:00 PM',
-      'Dinner': '7:00 PM'
-    };
-    
-    if (timeMap[timeIndicator]) {
-      return timeMap[timeIndicator];
-    }
-    
-    // Try to format numerical times
-    if (/\d/.test(timeIndicator)) {
-      // Extract hours and am/pm
-      const match = timeIndicator.match(/(\d{1,2})(?::(\d{2}))?(?:\s*(AM|PM))?/i);
-      if (match) {
-        let hours = parseInt(match[1]);
-        const minutes = match[2] ? match[2] : '00';
-        let period = match[3] ? match[3].toUpperCase() : '';
-        
-        // Determine AM/PM if not specified
-        if (!period) {
-          if (hours < 12) {
-            period = 'AM';
-          } else {
-            period = 'PM';
-          }
-        }
-        
-        return `${hours}:${minutes} ${period}`;
-      }
-    }
-    
-    // Default fallback
-    return timeIndicator;
-  }
-
-  // Helper methods for generating context-aware defaults
-  getDefaultDuration(activityType) {
-    if (activityType.includes('temple') || activityType.includes('shrine')) {
-      return '1-2 hours recommended';
-    } else if (activityType.includes('museum') || activityType.includes('gallery')) {
-      return '2-3 hours recommended';
-    } else if (activityType.includes('workshop') || activityType.includes('class')) {
-      return '3-4 hours including instruction';
-    } else if (activityType.includes('tour')) {
-      return '4-5 hours with breaks';
-    }
-    return '2-3 hours recommended';
-  }
-
-  getDefaultCost(activityType) {
-    if (activityType.includes('temple') || activityType.includes('shrine')) {
-      return 'Free entry (donations appreciated)';
-    } else if (activityType.includes('museum')) {
-      return 'INR 200-500 per person';
-    } else if (activityType.includes('workshop')) {
-      return 'INR 1000-2000 per person, includes materials';
-    }
-    return 'Varies by activity/season, please check at location';
-  }
-
-  getDefaultBooking(activityType) {
-    if (activityType.includes('temple')) {
-      return 'No booking required';
-    } else if (activityType.includes('workshop') || activityType.includes('class')) {
-      return 'Advance booking required, contact venue 24 hours prior';
-    } else if (activityType.includes('tour')) {
-      return 'Book through hotel desk or local tour operator';
-    }
-    return 'Check venue for current booking requirements';
-  }
-
-  getDefaultDressCode(activityType) {
-    if (activityType.includes('temple') || activityType.includes('shrine')) {
-      return 'Modest attire required: covered shoulders and knees, remove shoes';
-    } else if (activityType.includes('workshop')) {
-      return 'Comfortable clothing suitable for activities';
-    } else if (activityType.includes('restaurant')) {
-      return 'Smart casual attire recommended';
-    }
-    return 'Weather-appropriate, modest clothing recommended';
-  }
-
-  getDefaultPhotography(activityType) {
-    if (activityType.includes('temple')) {
-      return 'Permitted in outer areas, restricted in main shrine';
-    } else if (activityType.includes('museum')) {
-      return 'No flash photography, check specific gallery rules';
-    } else if (activityType.includes('performance')) {
-      return 'Photography allowed before and after performance only';
-    }
-    return 'Generally permitted, please check local guidelines';
-  }
-
-  getDefaultTransport(location) {
-    return `Available by auto-rickshaw or taxi from city center to ${location}`;
-  }
-
-  getDefaultTips(activityType) {
-    if (activityType.includes('temple')) {
-      return 'Visit during morning prayers for the best experience, bring socks for temple entry';
-    } else if (activityType.includes('market')) {
-      return 'Best in morning hours, carry cash, bargaining expected';
-    } else if (activityType.includes('food')) {
-      return 'Try local specialties, carry water, ask about spice levels';
-    }
-    return 'Respect local customs, carry water, wear comfortable footwear';
-  }
-
-  getDefaultWeatherAlternative(activityType) {
-    if (activityType.includes('outdoor') || activityType.includes('garden')) {
-      return 'Indoor cultural center or museum visit available nearby';
-    } else if (activityType.includes('temple')) {
-      return 'Covered areas available for prayers and meditation';
-    }
-    return 'Alternative indoor activities can be arranged';
-  }
-
-  // Helper function to get default time based on activity index
-  getDefaultTimeForIndex(index) {
-    const defaultTimes = ['9:00 AM', '11:00 AM', '12:30 PM', '2:30 PM', '5:00 PM', '8:00 PM'];
-    return defaultTimes[index % defaultTimes.length];
   }
 }
 

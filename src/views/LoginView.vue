@@ -94,6 +94,11 @@ export default {
         // Clear any existing error messages
         error.value = ''
         
+        // Debug: Check existing user data
+        console.log('Checking local storage...')
+        const existingUserIndex = localStorage.getItem('userIndex')
+        console.log('Existing user index:', existingUserIndex)
+        
         // Check if localStorage is available
         try {
           localStorage.setItem('test', 'test')
@@ -103,11 +108,24 @@ export default {
           return
         }
         
+        // Debug: Log login attempt
+        console.log('Attempting login with:', { 
+          identifier: identifier.value,
+          passwordLength: password.value.length 
+        })
+        
         const userData = await userService.login(identifier.value, password.value)
         
-        // Store user data in localStorage
+        // Store user data in localStorage with explicit isAuthenticated flag
+        const userDataToStore = {
+          ...userData,
+          isAuthenticated: true,  // Explicitly set authentication status
+          role: userData.role || 'traveler'  // Ensure role is set, default to traveler
+        }
+        
         try {
-          localStorage.setItem('userData', JSON.stringify(userData))
+          localStorage.setItem('userData', JSON.stringify(userDataToStore))
+          console.log('Stored user data:', userDataToStore)
         } catch (e) {
           console.error('Error storing user data:', e)
           // Even if localStorage fails, we can continue since data is in IPFS
@@ -128,13 +146,19 @@ export default {
         }
       } catch (err) {
         if (err.message.includes('401') || err.message.includes('Unauthorized')) {
-          error.value = 'Authentication failed. Please check your Pinata API credentials.'
+          error.value = 'Authentication failed. Please check your credentials.'
         } else if (err.message.includes('IPFS') || err.message.includes('Pinata')) {
           error.value = 'Unable to connect to storage service. Please try again later.'
         } else if (err.message.includes('User data not found')) {
-          error.value = 'Your account data could not be retrieved. Please contact support.'
+          error.value = 'Account not found. Please check your email/mobile number or sign up for a new account.'
         } else if (err.message.includes('Invalid credentials')) {
-          error.value = 'Invalid email/mobile or password. Please try again.'
+          error.value = 'Incorrect email/mobile number or password. Please try again.'
+          // Debug: Log more details about the error
+          console.log('Login failed with:', {
+            identifier: identifier.value,
+            hasPassword: !!password.value,
+            errorDetails: err.message
+          })
         } else {
           error.value = err.message || 'Login failed. Please try again.'
         }

@@ -21,12 +21,28 @@ const requireAuth = (to, from, next) => {
 
 // Navigation guard to check user role for travelers
 const requireTraveler = (to, from, next) => {
-  const userData = JSON.parse(localStorage.getItem('userData') || '{}')
-  
-  if (userData.role === 'traveler' && userData.isAuthenticated) {
-    next()
-  } else {
-    next({ name: 'home' })
+  try {
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+    console.log('Navigation Guard - User Data:', {
+      isAuthenticated: userData.isAuthenticated,
+      role: userData.role,
+      name: userData.name
+    })
+    
+    // If no role is specified, default to traveler
+    if (userData && userData.isAuthenticated === true) {
+      if (!userData.role || userData.role === 'traveler') {
+        next()
+        return
+      }
+    }
+    
+    console.log('Access denied: Not authenticated or not a traveler')
+    // Redirect to login if not authenticated, home if authenticated but wrong role
+    next(userData.isAuthenticated ? { name: 'home' } : { name: 'login' })
+  } catch (error) {
+    console.error('Error in requireTraveler guard:', error)
+    next({ name: 'login' })
   }
 }
 

@@ -214,7 +214,7 @@
                     </div>
                     
                     <!-- Time display -->
-                    <div class="flex-shrink-0 w-24 pt-0.5">
+                    <div class="flex-shrink-0 w-24 pt-0.5 ml-8">
                       <span class="text-sm font-medium text-gray-700">{{ timeSlot.time }}</span>
                     </div>
                     
@@ -272,19 +272,19 @@
                                 <ul class="space-y-1 text-xs">
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Duration:</span>
-                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.duration }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.duration || 'Not specified' }}</span>
                                   </li>
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Cost:</span>
-                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.cost }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.cost || 'Not specified' }}</span>
                                   </li>
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Booking:</span>
-                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.bookingInfo }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.booking || timeSlot.practicalInfo?.bookingInfo || 'Not specified' }}</span>
                                   </li>
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Dress Code:</span>
-                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.dressCode }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.dressCode || 'Not specified' }}</span>
                                   </li>
                                 </ul>
                               </div>
@@ -300,19 +300,19 @@
                                 <ul class="space-y-1 text-xs">
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Photography:</span>
-                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.photography }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.photography || 'Not specified' }}</span>
                                   </li>
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Transport:</span>
-                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.transport }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.practicalInfo?.transport || 'Not specified' }}</span>
                                   </li>
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Tips:</span>
-                                    <span class="text-gray-700">{{ timeSlot.tips }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.tips || 'Not specified' }}</span>
                                   </li>
                                   <li class="flex items-start">
                                     <span class="font-medium text-gray-600 min-w-[80px]">Weather Plan:</span>
-                                    <span class="text-gray-700">{{ timeSlot.weatherAlternatives }}</span>
+                                    <span class="text-gray-700">{{ timeSlot.weatherAlternative || timeSlot.weatherAlternatives || 'Not specified' }}</span>
                                   </li>
                                 </ul>
                               </div>

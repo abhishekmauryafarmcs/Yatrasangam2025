@@ -1,21 +1,30 @@
 <template>
   <div class="home-view">
     <!-- Hero Section with Background Image -->
-    <div class="relative">
-      <div class="absolute inset-0 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 z-10"></div>
-      <div class="relative h-[600px] bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1524492412937-b28074a5d7da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80')">
+    <div class="relative overflow-hidden">
+      <!-- Parallax Background Image with stronger overlay for text clarity -->
+      <div class="absolute inset-0 bg-gradient-to-r from-indigo-900/80 to-purple-900/80 z-10 sm:from-indigo-900/80 sm:to-purple-900/80 md:from-indigo-900/80 md:to-purple-900/80"></div>
+      <div 
+        ref="parallaxBg" 
+        class="absolute inset-0 bg-cover bg-center transition-transform duration-200 transform scale-110 hero-background" 
+        :style="{
+          backgroundImage: `url('https://images.unsplash.com/photo-1524492412937-b28074a5d7da?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80')`,
+          transform: `translateY(${parallaxOffset}px) scale(1.1)`
+        }"
+      ></div>
+      <div class="relative h-[600px] sm:h-[600px]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
-          <div class="relative z-20 max-w-2xl">
-            <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
+          <div class="relative z-20 max-w-2xl hero-content">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl hero-text">
               <span class="block">Discover India's</span>
               <span class="block text-indigo-200">Cultural Heritage</span>
             </h1>
-            <p class="mt-3 text-base text-white sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl">
+            <p class="mt-3 text-base text-white sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl hero-text">
               Experience the vibrant colors, rich traditions, and ancient wonders of India with personalized cultural itineraries.
             </p>
             
             <!-- Search Bar with Filters -->
-            <div class="mt-8 bg-white rounded-lg shadow-xl p-4">
+            <div class="mt-6 sm:mt-8 hidden sm:block bg-white/95 sm:bg-white rounded-lg shadow-xl p-4 hero-search">
               <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-grow">
                   <label for="destination" class="block text-sm font-medium text-gray-700">Where do you want to travel?</label>
@@ -41,12 +50,12 @@
             
             <div class="mt-5 sm:mt-8 sm:flex sm:justify-start">
               <div class="rounded-md shadow">
-                <button @click="navigateToItinerary" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10">
+                <button @click="navigateToItinerary" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600/90 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10 backdrop-blur-sm sm:bg-indigo-600">
                   Plan My Journey
                 </button>
               </div>
               <div class="mt-3 sm:mt-0 sm:ml-3">
-                <button @click="navigateToGuides" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10">
+                <button @click="navigateToGuides" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100/95 hover:bg-indigo-200 md:py-4 md:text-lg md:px-10 backdrop-blur-sm sm:bg-indigo-100">
                   Find Local Guides
                 </button>
               </div>
@@ -453,7 +462,12 @@
                 <span class="text-indigo-600">🤖</span>
               </div>
               <div class="ml-4 bg-gray-50 rounded-lg p-4 max-w-[85%]">
-                <p class="text-sm text-gray-700 whitespace-pre-line">{{ msg.message }}</p>
+                <p class="text-sm text-gray-700 whitespace-pre-line" v-if="msg.isTyping">
+                  <span class="typing-indicator">...</span>
+                </p>
+                <p class="text-sm text-gray-700 whitespace-pre-line" v-else>
+                  {{ msg.isStreaming ? msg.displayedText : msg.message }}
+                </p>
               </div>
             </div>
             
@@ -577,7 +591,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -604,6 +618,19 @@ const chatHistory = ref([
 
 // Dialog state management
 const activeDialog = ref(null)
+
+// Add parallax scrolling effect variables
+const parallaxOffset = ref(0)
+const parallaxBg = ref(null)
+
+// Function to handle parallax scrolling
+const handleScroll = () => {
+  if (parallaxBg.value) {
+    // Calculate parallax offset based on scroll position
+    // The divisor (5) controls the speed of the parallax effect - higher means slower
+    parallaxOffset.value = window.scrollY / 5
+  }
+}
 
 // Function to generate AI response using OpenRouter API
 const generateAIResponse = async (message) => {
@@ -700,11 +727,40 @@ const sendAIMessage = async () => {
     // Remove typing indicator
     chatHistory.value = chatHistory.value.filter(msg => !msg.isTyping)
     
-    // Add AI response to chat history
+    // Add AI response to chat history with empty displayed text
+    const messageIndex = chatHistory.value.length
     chatHistory.value.push({
       type: 'ai',
-      message: response
+      message: response,
+      displayedText: '',
+      isStreaming: true
     })
+
+    // Clear input
+    aiMessage.value = ''
+
+    // Implement typewriter effect
+    let currentPosition = 0
+    const fullText = response
+    const msg = chatHistory.value[messageIndex]
+    
+    const streamingInterval = setInterval(() => {
+      if (currentPosition < fullText.length) {
+        // Add one character at a time
+        currentPosition++
+        msg.displayedText = fullText.substring(0, currentPosition)
+        
+        // Scroll to bottom as text appears
+        const chatContainer = document.querySelector('.ai-chat-messages')
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight
+        }
+      } else {
+        // Streaming complete
+        clearInterval(streamingInterval)
+        msg.isStreaming = false
+      }
+    }, 15) // Speed of typing (lower = faster)
   } catch (error) {
     console.error('Error in sendAIMessage:', error)
     
@@ -712,14 +768,37 @@ const sendAIMessage = async () => {
     chatHistory.value = chatHistory.value.filter(msg => !msg.isTyping)
     
     // Add fallback response
+    const fallbackResponse = findMatchingAnswer(aiMessage.value)
     chatHistory.value.push({
       type: 'ai',
-      message: findMatchingAnswer(aiMessage.value)
+      message: fallbackResponse,
+      displayedText: '',
+      isStreaming: true
     })
+    
+    // Clear input
+    aiMessage.value = ''
+    
+    // Apply typewriter effect to fallback response too
+    let currentPosition = 0
+    const fullText = fallbackResponse
+    const msg = chatHistory.value[chatHistory.value.length - 1]
+    
+    const streamingInterval = setInterval(() => {
+      if (currentPosition < fullText.length) {
+        currentPosition++
+        msg.displayedText = fullText.substring(0, currentPosition)
+        
+        const chatContainer = document.querySelector('.ai-chat-messages')
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight
+        }
+      } else {
+        clearInterval(streamingInterval)
+        msg.isStreaming = false
+      }
+    }, 15)
   }
-
-  // Clear input
-  aiMessage.value = ''
 
   // Scroll to bottom of chat
   setTimeout(() => {
@@ -1175,11 +1254,17 @@ const handleEscapeKey = (event) => {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEscapeKey)
+  
+  // Add scroll event listener for parallax effect
+  window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleEscapeKey)
+  
+  // Remove scroll event listener
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -1193,6 +1278,29 @@ onUnmounted(() => {
   justify-content: center;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+/* Mobile-specific styles for hero section */
+@media (max-width: 640px) {
+  .hero-content {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+  
+  .hero-background::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 100%);
+    z-index: 5;
+    pointer-events: none;
+  }
+  
+  .hero-text {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  
+  /* Removing mobile-specific styles for hero-search since it's now hidden on mobile */
 }
 
 .cultural-emoji {
@@ -1225,5 +1333,34 @@ onUnmounted(() => {
 /* Add hover effect for the container */
 .group:hover .cultural-emoji {
   animation-duration: 2s;
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  display: inline-block;
+  position: relative;
+}
+
+.typing-indicator::after {
+  content: '...';
+  position: absolute;
+  left: 0;
+  animation: typing 1.5s infinite;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+@keyframes typing {
+  0% { width: 0; }
+  20% { width: 1ch; }
+  40% { width: 2ch; }
+  60% { width: 3ch; }
+  80% { width: 0; }
+  100% { width: 0; }
+}
+
+/* Smooth parallax effect */
+.transition-transform {
+  transition: transform 0.1s ease-out;
 }
 </style> 
