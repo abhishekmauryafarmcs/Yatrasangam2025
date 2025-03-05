@@ -27,6 +27,7 @@
             <div class="flex items-center">
               <!-- Show Sign Up/Login buttons when not authenticated -->
               <template v-if="!isAuthenticated">
+                <LanguageSelector class="mr-3" @languageChanged="handleLanguageChange" />
                 <router-link 
                   to="/login" 
                   class="inline-flex items-center px-4 py-2 mr-3 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50"
@@ -183,6 +184,8 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import SplashScreen from './components/SplashScreen.vue'
+import LanguageSelector from './components/LanguageSelector.vue'
+import { translationService } from './services/translationService'
 
 const router = useRouter()
 const isAuthenticated = ref(false)
@@ -236,13 +239,21 @@ onMounted(() => {
   checkAuth()
 })
 
-// Navigation items based on authentication
-const navigationItems = computed(() => [
+// Change from computed to ref for navigation items
+const navigationItems = ref([
   { name: 'Home', path: '/', show: true },
-  { name: 'Create Itinerary', path: '/itinerary', show: isAuthenticated.value && userData.value.role !== 'guide' },
-  { name: 'Local Guides', path: '/guides', show: isAuthenticated.value },
-  { name: 'Cultural Tips', path: '/culture', show: isAuthenticated.value },
+  { name: 'Create Itinerary', path: '/itinerary', show: false },
+  { name: 'Local Guides', path: '/guides', show: false },
+  { name: 'Cultural Tips', path: '/culture', show: false }
 ])
+
+// Update the show property when authentication changes
+watch(() => isAuthenticated.value, (newValue) => {
+  navigationItems.value = navigationItems.value.map(item => ({
+    ...item,
+    show: item.path === '/' ? true : newValue && (item.path !== '/itinerary' || userData.value.role !== 'guide')
+  }))
+})
 
 // Add favicon dynamically
 const favicon = document.createElement('link')
@@ -250,4 +261,33 @@ favicon.rel = 'icon'
 favicon.href = '/icons/yatrasangamlogo.png'
 favicon.type = 'image/png'
 document.head.appendChild(favicon)
+
+// Add new function to handle language changes
+const handleLanguageChange = async (langCode) => {
+  try {
+    await translationService.initialize()
+    // Create an array of translation promises
+    const translatedItems = await Promise.all(
+      navigationItems.value.map(async (item) => ({
+        ...item,
+        name: await translationService.translate(item.name, 'en', langCode)
+      }))
+    )
+    // Update the navigation items with translated names
+    navigationItems.value = translatedItems
+  } catch (error) {
+    console.error('Error changing language:', error)
+  }
+}
+
+// Initialize translation service and check auth on mount
+onMounted(async () => {
+  checkAuth()
+  await translationService.initialize()
+  // Set initial show states
+  navigationItems.value = navigationItems.value.map(item => ({
+    ...item,
+    show: item.path === '/' ? true : isAuthenticated.value && (item.path !== '/itinerary' || userData.value.role !== 'guide')
+  }))
+})
 </script> 

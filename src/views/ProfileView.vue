@@ -110,7 +110,27 @@
 
                 <div>
                   <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
-                  <input type="text" id="location" v-model="editedUser.location" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <div class="mt-1 space-y-2">
+                    <select
+                      id="state"
+                      v-model="editedUser.state"
+                      class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      @change="updateDistricts"
+                    >
+                      <option value="">Select State</option>
+                      <option v-for="state in states" :key="state" :value="state">{{ state }}</option>
+                    </select>
+                    
+                    <select
+                      id="district"
+                      v-model="editedUser.district"
+                      class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      :disabled="!editedUser.state"
+                    >
+                      <option value="">Select District</option>
+                      <option v-for="district in districts" :key="district" :value="district">{{ district }}</option>
+                    </select>
+                  </div>
                 </div>
 
                 <!-- Traveler-specific fields -->
@@ -314,6 +334,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { fetchFromPinata } from '../utils/pinata'
+import { getAllStates, getDistricts } from '../data/indianStates'
 
 // Load user data from localStorage
 const loadUserData = () => {
@@ -322,11 +343,12 @@ const loadUserData = () => {
     if (storedData) {
       const parsedData = JSON.parse(storedData)
       return {
-        userType: parsedData.role || 'traveler', // Use role from userData
+        userType: parsedData.role || 'traveler',
         name: parsedData.name || '',
         email: parsedData.email || '',
         mobile: parsedData.mobile || '',
-        location: '',
+        state: '',
+        district: '',
         preferences: [],
         about: '',
         specialties: [],
@@ -344,7 +366,8 @@ const loadUserData = () => {
     userType: 'traveler',
     name: '',
     email: '',
-    location: '',
+    state: '',
+    district: '',
     preferences: [],
     about: '',
     specialties: [],
@@ -418,7 +441,24 @@ const allLanguages = [
   'Kannada'
 ]
 
+// Add these new refs and computed properties
+const states = computed(() => getAllStates())
+const districts = ref([])
+
+// Add this new method
+const updateDistricts = () => {
+  districts.value = getDistricts(editedUser.state)
+  editedUser.district = '' // Reset district when state changes
+}
+
 function saveProfile() {
+  // Combine state and district for the location
+  if (editedUser.state && editedUser.district) {
+    editedUser.location = `${editedUser.district}, ${editedUser.state}`
+  } else {
+    editedUser.location = editedUser.state || ''
+  }
+  
   Object.assign(user, editedUser)
   
   // Save to localStorage

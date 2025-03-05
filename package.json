@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3000",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && firebase deploy",
     "generate-pwa-assets": "pwa-assets-generator"
   },
   "dependencies": {
+    "@browsermt/bergamot-translator": "^0.4.9",
     "@headlessui/vue": "^1.7.0",
     "@heroicons/vue": "^2.0.0",
     "@vueuse/core": "^10.5.0",
@@ -20,6 +21,7 @@
     "register-service-worker": "^1.7.2",
     "tailwindcss": "^3.3.0",
     "vue": "^3.3.0",
+    "vue-i18n": "^11.0.0-rc.1",
     "vue-router": "^4.2.0",
     "workbox-window": "^7.0.0"
   },
