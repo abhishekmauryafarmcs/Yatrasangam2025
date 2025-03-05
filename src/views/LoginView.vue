@@ -91,14 +91,53 @@ export default {
         loading.value = true
         error.value = ''
         
-        const userData = await userService.login(identifier.value, password.value)
-        localStorage.setItem('userData', JSON.stringify(userData))
+        // Clear any existing error messages
+        error.value = ''
         
-        // Redirect to profile page
-        router.push('/profile')
+        // Check if localStorage is available
+        try {
+          localStorage.setItem('test', 'test')
+          localStorage.removeItem('test')
+        } catch (e) {
+          error.value = 'Local storage is not available. Please enable cookies and try again.'
+          return
+        }
+        
+        const userData = await userService.login(identifier.value, password.value)
+        
+        // Store user data in localStorage
+        try {
+          localStorage.setItem('userData', JSON.stringify(userData))
+        } catch (e) {
+          console.error('Error storing user data:', e)
+          // Even if localStorage fails, we can continue since data is in IPFS
+        }
+        
+        // Check if the data was reconstructed (partial data)
+        if (userData.isReconstructed) {
+          // We'll still redirect to profile, but show a warning
+          error.value = 'Logged in with limited data. Some features may be unavailable.'
+          
+          // Set a timeout to redirect after showing the message
+          setTimeout(() => {
+            router.push('/profile')
+          }, 2000)
+        } else {
+          // Redirect to profile page immediately for full data
+          router.push('/profile')
+        }
       } catch (err) {
-        // Display specific error message from the service if available
-        error.value = err.message || 'Login failed. Please try again.'
+        if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+          error.value = 'Authentication failed. Please check your Pinata API credentials.'
+        } else if (err.message.includes('IPFS') || err.message.includes('Pinata')) {
+          error.value = 'Unable to connect to storage service. Please try again later.'
+        } else if (err.message.includes('User data not found')) {
+          error.value = 'Your account data could not be retrieved. Please contact support.'
+        } else if (err.message.includes('Invalid credentials')) {
+          error.value = 'Invalid email/mobile or password. Please try again.'
+        } else {
+          error.value = err.message || 'Login failed. Please try again.'
+        }
         console.error('Login error:', err)
       } finally {
         loading.value = false

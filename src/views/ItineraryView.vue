@@ -561,15 +561,28 @@ async function saveItineraryToProfile() {
 
 // Map destinations with coordinates
 const mapDestinations = computed(() => {
-  if (!formData.destination || !formData.state) return []
+  console.log("Computing map destinations. State:", formData.state, "Destination:", formData.destination);
   
-  const coordinates = locationService.getCoordinates(formData.state, formData.destination)
-  if (!coordinates) return []
+  if (!formData.destination || !formData.state) {
+    console.log("Missing destination or state. Returning empty array.");
+    return [];
+  }
+  
+  const coordinates = locationService.getCoordinates(formData.state, formData.destination);
+  console.log("Retrieved coordinates:", coordinates);
+  
+  if (!coordinates) {
+    console.log("No coordinates found for", formData.destination, "in", formData.state);
+    return [];
+  }
 
-  return [{
+  const result = [{
     name: formData.destination,
     coordinates: coordinates,
     description: `Your selected destination in ${formData.state}`
-  }]
+  }];
+  
+  console.log("Returning map destinations:", result);
+  return result;
 })
 </script> 

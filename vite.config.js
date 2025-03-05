@@ -106,7 +106,35 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
-    open: true
+    port: 3001,
+    strictPort: false,
+    open: true,
+    proxy: {
+      '/api': {
+        target: 'https://api.pinata.cloud',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '^/api/ipfs/(.*)': {
+        target: 'https://gateway.pinata.cloud/ipfs/',
+        changeOrigin: true,
+        rewrite: (path) => {
+          const hash = path.replace('/api/ipfs/', '');
+          console.log('Proxying IPFS request for hash:', hash);
+          return hash;
+        },
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('IPFS proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending IPFS Request:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received IPFS Response:', proxyRes.statusCode, req.url);
+          });
+        }
+      }
+    }
   }
 }) 
