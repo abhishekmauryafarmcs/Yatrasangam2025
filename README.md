@@ -52,6 +52,24 @@ A modern web application for cultural event planning and management, built with 
   }
 }
 ```
+Dependencies (Libraries our application needs to run):
+
+1.vue: The core Vue.js 3 library for building user interfaces.
+2.vue-router: For handling navigation and routing within the Vue application.
+3.pinia: A state management library for Vue, providing a more intuitive and type-safe way to manage application state.
+4.tailwindcss: A utility-first CSS framework for rapid UI development.
+5.@headlessui/vue: A set of unstyled, accessible UI components for Vue, designed to work seamlessly with Tailwind CSS.
+6.@heroicons/vue: A collection of beautiful SVG icons as Vue components.
+7.axios: A promise-based HTTP client for making API requests.
+Development Dependencies (Tools used during development, not needed in production):
+
+8.@vitejs/plugin-vue: A Vite plugin that provides Vue 3 Single-File Component (SFC) support.
+9.typescript: A superset of JavaScript that adds static typing, improving code maintainability.
+9.vite: A fast build tool that provides a rapid development experience.
+10.@types/node: Type definitions for Node.js, used for TypeScript development.
+11.autoprefixer: A PostCSS plugin that adds vendor prefixes to CSS rules, ensuring cross-browser compatibility.
+12.postcss: A tool for transforming CSS with JavaScript plugins, used here as a part of the tailwind configuration.
+
 
 ## 🚀 Getting Started
 
